@@ -1,9 +1,111 @@
-# Pi Web - Development Notes
+# JZPI - Development Notes
+
+## Project Direction
+
+JZPI is a personal pi coding-agent workspace forked from `agegr/pi-web`.
+The inherited pi-web behavior is the current baseline; the target is to add a
+JZPI-owned middleware/orchestration boundary between the WebUI and pi SDK/raw
+pi agent.
+
+Target deployment:
+
+```text
+Windows Edge PWA
+        ↓ localhost / WSL port forwarding
+JZPI WebUI + server in WSL/Linux (default port 30142)
+        ↓
+JZPI middleware / personal plugin orchestration
+        ↓
+pi SDK / raw pi agent
+```
+
+Non-negotiable boundaries:
+
+- Do not patch pi core or pi TUI.
+- Do not depend on persistent edits to global `node_modules`.
+- Do not put JZPI WebUI or personal workflows into pi TUI extensions.
+- Keep raw pi usable independently and preserve native pi session/config compatibility.
+- UI owns interaction; middleware owns workflows and policy; a future pi adapter owns SDK compatibility.
+- Keep JZPI private metadata outside pi session JSONL. The planned default is `~/.jzpi` once a storage module exists.
+- Treat the middleware as an in-process code boundary first. Do not introduce a separate service or WebSocket without a demonstrated need.
+
+Project direction, architecture, implementation status, change history, and user
+operations are maintained in `.auxiliary/`. Treat that folder as the canonical
+project memory and keep it synchronized with substantial changes.
+
+Compatibility names inherited from pi-web (`PI_WEB_*`, `pi-web:*` browser
+storage keys, and extension event names) may remain until there is a tested
+migration. Do not rename them only for branding.
+
+## `.auxiliary` Documentation Rules
+
+The five files have non-overlapping responsibilities:
+
+- `BLUEPRINT.md`: macro product design only — purpose, users, long-term shape,
+  principles, ownership boundaries, and non-goals. Keep it independent of code
+  paths, dependency versions, task status, and implementation details.
+- `SCAFFOLD.md`: technical architecture and code landing definition — current
+  baseline, target layers, interfaces, directory/module boundaries, lifecycle,
+  data, compatibility, security, upstream, and validation constraints.
+- `ROADMAP.md`: implementation status and short-term planning — completed,
+  active, blocked, and next work. It is the sole source of truth for progress;
+  do not turn it into a historical changelog.
+- `LOGBOOK.md`: append-oriented stage summaries — record the date, intent,
+  broad changes, validation, and follow-ups for meaningful batches of work.
+  Do not log every mechanical file edit or duplicate Git history.
+- `RUNBOOK.md`: concise user-facing operating guide — installation, startup,
+  Windows/WSL/PWA usage, configuration, safety, and troubleshooting.
+
+Maintenance workflow:
+
+1. Before substantial work, read `BLUEPRINT.md`, `SCAFFOLD.md`, and
+   `ROADMAP.md`; read the recent `LOGBOOK.md` entries and relevant `RUNBOOK.md`
+   sections when the task affects existing behavior or user operation.
+2. Update the affected `.auxiliary` files in the same change as code or
+   architectural decisions. Do not postpone documentation cleanup to a future
+   task.
+3. Update `ROADMAP.md` whenever work starts, completes, becomes blocked, or
+   changes priority. Move durable outcomes to `SCAFFOLD.md`; summarize completed
+   stages in `LOGBOOK.md`.
+4. Update `BLUEPRINT.md` only when macro goals or non-negotiable boundaries
+   change. Never put transient implementation notes there.
+5. Update `RUNBOOK.md` whenever commands, ports, configuration, deployment,
+   safety requirements, or visible workflows change.
+6. Keep current facts separate from target design. Never describe planned
+   behavior as implemented.
+7. Keep `README.md` brief and public-facing, and keep low-level implementation
+   traps in this `AGENTS.md`; use `.auxiliary` for the maintained project model
+   between those two levels.
+8. `.auxiliary` is intentionally ignored by Git in this workspace. Maintain it
+   anyway; ignored status is not permission to let it become stale or delete it.
+9. Before ending a substantial task, verify cross-file consistency and append a
+   `LOGBOOK.md` entry when the batch represents a meaningful project stage.
+
+## Learning-Oriented Collaboration
+
+JZPI is also a learning project. During future development, do not only execute
+operations; briefly explain them so the maintainer can build a working mental
+model.
+
+- Before a non-trivial command or edit, state its purpose and what area it may
+  affect. Afterward, summarize the important result rather than dumping output.
+- For code changes, explain the relevant concept, why the chosen approach fits
+  this architecture, and any important trade-off or alternative.
+- For failures, explain the diagnostic path and distinguish environment issues,
+  dependency issues, inherited baseline failures, and new regressions.
+- Clearly label required steps versus optional cleanup or investigation.
+- Call out destructive or state-changing operations before running them,
+  including dependency reinstalls, file deletion, migrations, force worktree
+  removal, and commands that touch pi credentials or sessions.
+- Keep explanations concise and task-local. Do not repeat basic explanations on
+  every identical command, and do not turn routine work into a generic tutorial.
+- Learning value never replaces correctness: preserve tests, security boundaries,
+  compatibility, and documentation discipline.
 
 ## Quick Start
 
 ```bash
-npm run dev   # port 30141
+npm run dev   # port 30142
 ```
 
 Typecheck: `node_modules/.bin/tsc --noEmit`  
@@ -12,7 +114,7 @@ Lint: `npm run lint`
 
 ---
 
-## Architecture
+## Current Baseline Architecture
 
 ```
 Browser                Next.js Server              AgentSession (in-process)

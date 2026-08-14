@@ -1,131 +1,76 @@
-# Pi Web
+# JZPI
 
-[中文文档](./README.zh-CN.md) | [日本語](./README.ja.md) | [Русский](./README.ru.md)
+JZPI 是基于开源项目 [agegr/pi-web](https://github.com/agegr/pi-web) fork 的个人版 **pi coding agent 工作台**，同时也是一个通过真实项目演进学习 Web、Agent SDK 与工程架构的长期学习项目。
 
-Local browser UI for the [pi coding agent](https://github.com/earendil-works/pi). Pi Web uses the same local configuration and session files as pi, so you can browse and resume conversations, run agent turns, configure models and resources, and inspect project files from a browser.
+项目当前处于 fork 整理与架构收敛阶段。现阶段首先保持 pi-web 已有能力稳定可用，再逐步在 WebUI 与 pi SDK/raw pi agent 之间建立 JZPI 自己的中间层，用于承载个人工作流、策略和插件编排。
 
-![Pi Web displaying a pi session with structured Markdown, tool calls, and project navigation](https://raw.githubusercontent.com/agegr/pi-web/main/docs/screenshot2.png)
+> JZPI 不是 pi core 或 pi TUI 的定制发行版，也不会通过长期修改全局 `node_modules` 来实现功能。
 
-## Features
+## 项目目标
 
-- **Session workspace**: browse, resume, rename, export, and delete conversations grouped by project, with running state, context usage, cost, and compaction details.
-- **Two ways to branch**: **New session** creates an independent session file from an earlier message; **Edit from here** creates a branch inside the current session.
-- **Project file tools**: browse and upload files, inspect Git diffs, and preview source, Markdown, images, audio, PDFs, and DOCX files with automatic refresh.
-- **Git worktrees**: switch checkouts from the sidebar while keeping sessions from the same repository grouped together.
-- **Web-based configuration**: manage provider login and API keys, models, model tests, plugin packages, and skills without leaving Pi Web.
-- **English and Simplified Chinese UI**: Pi Web follows the browser language initially and provides a language switcher in the top bar.
+目标运行形态：
 
-## Quick Start
-
-Pi Web requires Node.js 22.19.0 or newer. Check your version with `node --version`, then run:
-
-```bash
-npx @agegr/pi-web@latest
+```text
+Windows PWA / Edge App
+        ↓
+浏览器 UI
+        ↓  localhost / WSL 端口转发
+WSL/Linux 内的 JZPI（默认端口 30142）
+        ↓
+JZPI 中间层 / 插件编排层
+        ↓
+pi SDK / raw pi agent
 ```
 
-The CLI opens a browser after the server is ready. If it does not, open [http://127.0.0.1:30141](http://127.0.0.1:30141). Pi Web listens only on `127.0.0.1` by default.
+核心原则：
 
-If no model provider is configured yet, open the **Models** panel to sign in or add an API key.
+- 不 patch pi core
+- 不 patch pi TUI
+- 不长期修改 npm 全局 `node_modules`
+- 不把 WebUI 或个人工作流逻辑塞进 pi TUI extension
+- raw pi agent 保持干净、可独立升级和使用
+- WebUI 负责交互，中间层负责策略、编排和兼容
+- 尽量保持 pi 原生配置、会话格式与工具生态兼容
+- JZPI 私有元数据不污染 pi 原生会话数据
 
-To install the `pi-web` command globally:
+项目设计资料在本地工作区的 `.auxiliary/` 中按职责持续维护：
 
-```bash
-npm install -g @agegr/pi-web@latest
-pi-web
-```
+- `BLUEPRINT.md`：宏观设计
+- `SCAFFOLD.md`：技术架构与代码落地定义
+- `ROADMAP.md`：实现进度与短期规划
+- `LOGBOOK.md`：阶段修改记录
+- `RUNBOOK.md`：简要使用手册
 
-To update, stop the running process with `Ctrl+C` and run the same install command again. To uninstall, run `npm uninstall -g @agegr/pi-web`.
+## 当前状态
 
-## Configuration
+当前代码基本保持 pi-web 的实现方式：Next.js API route 在同一 Node.js 进程内直接创建和管理 pi `AgentSession`。规划中的 JZPI 中间层尚未完成，不能把目标架构误认为当前已经实现。
 
-For port and hostname, command-line options override the corresponding environment variables. Either `--no-open` or `PI_WEB_NO_OPEN=1` disables automatic browser opening.
+继承自 pi-web 的主要能力包括：
 
-| Option or environment variable | Purpose | Default |
-| --- | --- | --- |
-| `--port <port>`, `-p <port>`, or `PORT` | Server port | `30141` |
-| `--hostname <host>`, `-H <host>`, or `PI_WEB_HOSTNAME` | Bind hostname | `127.0.0.1` |
-| `--no-open` or `PI_WEB_NO_OPEN=1` | Do not open a browser automatically | Browser opens |
-| `PI_WEB_ALLOWED_HOSTS` | Additional exact proxy or custom hostnames, comma-separated | Unset |
-| `PI_WEB_PASSWORD` | Enable HTTP Basic Auth; the username is always `pi` | Authentication disabled |
+- 浏览、恢复、分支、导出和删除 pi 会话
+- Agent 实时执行、SSE 事件流和断线恢复
+- 模型、Provider、API Key、OAuth、插件和 Skill 管理
+- 项目文件浏览、预览、上传、Git Diff 和 worktree
+- PWA、移动端布局、英文和简体中文界面
 
-For example:
+## 本地开发
 
-```bash
-pi-web -p 8080 -H 0.0.0.0 --no-open
-```
-
-### Remote Access
-
-Binding to a non-loopback address exposes an agent that can execute high-privilege actions. On a trusted LAN, require a long random password:
-
-```bash
-PI_WEB_PASSWORD='a-long-random-password' pi-web --hostname 0.0.0.0
-```
-
-Basic Auth does not encrypt the password in transit. Do not expose Pi Web over plain HTTP to the internet; use HTTPS through a trusted reverse proxy or a trusted VPN. If a reverse proxy sends an external hostname, add that exact name to `PI_WEB_ALLOWED_HOSTS`. This allow-list does not change the address Pi Web binds to.
-
-### HTTP Proxy
-
-Server-side model and API requests honor the standard `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables.
-
-On macOS or Linux:
-
-```bash
-HTTP_PROXY=http://127.0.0.1:7890 \
-HTTPS_PROXY=http://127.0.0.1:7890 \
-NO_PROXY=localhost,127.0.0.1 \
-npx @agegr/pi-web@latest
-```
-
-On Windows PowerShell:
-
-```powershell
-$env:HTTP_PROXY = "http://127.0.0.1:7890"
-$env:HTTPS_PROXY = "http://127.0.0.1:7890"
-$env:NO_PROXY = "localhost,127.0.0.1"
-npx @agegr/pi-web@latest
-```
-
-## Notes
-
-- **Agent data**: Pi Web reads pi data from `~/.pi/agent` by default, including session files under `sessions/<encoded-cwd>/<timestamp>_<uuid>.jsonl`. Set `PI_CODING_AGENT_DIR` to use another pi agent directory.
-- **Filesystem access**: Pi Web must be able to read the agent data directory and the working directories recorded by its sessions. Run Pi Web in the same filesystem environment as pi when sharing existing sessions.
-- **Shared configuration**: the Models panel uses pi's model, settings, and credential storage, so changes are visible to both interfaces.
-- **File access boundary**: the file browser is limited to working directories selected in Pi Web and project or session roots it already knows about; it is not a general filesystem browser.
-- **Git worktrees**: see [Worktrees in Pi Web](./docs/worktrees.md) for switcher visibility, worktree creation, and removal behavior.
-
-### Downstream Session Context Menu
-
-Electron wrappers and other downstream integrations can provide a session-row
-context menu without patching `SessionSidebar`. Listen for the cancelable
-`pi-web:session-row-contextmenu` browser event and call `preventDefault()`
-synchronously when the integration will handle it:
-
-```js
-window.addEventListener("pi-web:session-row-contextmenu", (event) => {
-  event.preventDefault();
-  const { id, path, cwd, name, clientX, clientY, refresh } = event.detail;
-
-  void openSessionMenu({ id, path, cwd, name, clientX, clientY }).then((changed) => {
-    if (changed) refresh();
-  });
-});
-```
-
-The detail object contains `id`, `path`, `cwd`, optional `name`, pointer
-coordinates, and a `refresh()` callback for actions that change the session
-list. If no listener cancels the extension event, Pi Web preserves the
-browser's native context menu. This hook is browser-side and independent of
-Pi agent extensions.
-
-## Development
+要求 Node.js `22.19.0` 或更高版本。
 
 ```bash
 npm install
 npm run dev
 ```
 
-The development server runs at [http://127.0.0.1:30141](http://127.0.0.1:30141). Run the common checks with:
+访问：<http://127.0.0.1:30142>
+
+JZPI 使用 `30142`，以便原版 pi-web 继续使用 `30141`。如需临时指定其他端口：
+
+```bash
+npx next dev -H 127.0.0.1 -p 8080
+```
+
+常用检查：
 
 ```bash
 npm test
@@ -133,23 +78,31 @@ node_modules/.bin/tsc --noEmit
 npm run lint
 ```
 
-Do not run `next build` or `npm run build` during normal development. It writes to `.next/` and can interfere with the development server; leave builds for release work.
+日常开发不要运行 `next build` 或 `npm run build`；构建会写入 `.next/`，可能干扰开发服务器。
 
-Contributor guides: [Internationalization](./docs/i18n.md) and [Release process](./docs/release.md).
+## WSL / Windows 使用
 
-## Repository Layout
+推荐在 WSL/Linux 中运行 JZPI，在 Windows Edge 中将其安装为 PWA。默认仅监听 `127.0.0.1`，避免意外暴露可执行高权限操作的 Agent 服务。
 
-```text
-app/             Next.js UI and API routes
-components/      React UI components
-hooks/           Client state and interaction hooks
-lib/             Session, agent, model, file, Git, and security logic
-public/          Static assets and PWA files
-bin/             npm CLI entrypoint and launch option parsing
-docs/            Focused user and contributor guides
+如果当前 WSL 网络模式无法从 Windows 直接访问 `127.0.0.1:30142`，应通过 WSL/Windows 的端口转发解决，而不是默认将服务暴露到局域网。确需监听非回环地址时可运行：
+
+```bash
+PI_WEB_PASSWORD='足够长的随机密码' npm run dev:lan
 ```
 
-See [AGENTS.md](./AGENTS.md) for the architecture notes and detailed file map.
+`PI_WEB_*` 环境变量是从 pi-web 继承的兼容接口，现阶段保留，后续如引入 `JZPI_*` 会提供迁移策略。
+
+## 数据与兼容性
+
+- pi 数据默认位于 `~/.pi/agent`，JZPI 与 raw pi 共用模型配置、凭据和原生会话文件。
+- 可通过 `PI_CODING_AGENT_DIR` 指定其他 pi agent 数据目录。
+- JZPI 必须运行在能够访问会话 CWD 的文件系统环境中，因此推荐与 raw pi 一同运行在 WSL/Linux。
+- 文件浏览 API 有允许目录边界，不是通用文件管理器。
+- 未来 JZPI 自有状态应写入独立目录，默认规划为 `~/.jzpi`；在相关存储模块落地前，不向 pi 会话格式写入私有字段。
+
+## Fork 与许可
+
+JZPI 基于 MIT License 的 pi-web 开发，保留原项目版权和许可信息。上游同步应通过 Git 和依赖升级完成，不直接修改 npm 全局安装目录。相关工程约束维护在 `.auxiliary/SCAFFOLD.md`。
 
 ## License
 
