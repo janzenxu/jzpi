@@ -80,6 +80,10 @@ Maintenance workflow:
    anyway; ignored status is not permission to let it become stale or delete it.
 9. Before ending a substantial task, verify cross-file consistency and append a
    `LOGBOOK.md` entry when the batch represents a meaningful project stage.
+10. Before adding or changing a dated `LOGBOOK.md` entry, query the local system
+    date (for example, `date +%F`). Use evidence such as Git timestamps for
+    historical events; never infer the working date from an upstream commit,
+    tag name, or existing entry.
 
 ## Learning-Oriented Collaboration
 
